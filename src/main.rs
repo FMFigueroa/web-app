@@ -16,7 +16,7 @@ fn main() {
 /// (f64): random number between 0 -> 10
 fn generate_float(generator: &mut ThreadRng) -> f64 {
     let placeholder: f64 = generator.gen();
-    return placeholder * 10.0
+    return placeholder * 10.0;
 }
 /// This trait defines the struct to be a user.
 trait IsUser {
@@ -28,7 +28,7 @@ trait IsUser {
     /// # Returns
     /// (bool) true if user, false if not
     fn is_user() -> bool {
-        return true
+        return true;
     }
 }
 /// This struct defines a user
@@ -36,7 +36,7 @@ trait IsUser {
 /// # Attributes
 /// * name (String): the name of the user
 /// * age (i8): the age of the user
-struct User {
+struct _User {
     name: String,
-    age: i8
+    age: i8,
 }
