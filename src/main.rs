@@ -1,8 +1,48 @@
 use rand::prelude::*;
-use std::env;
+//use std::env;
+use clap::{App, Arg};
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let app = App::new("booking")
+        .version("1.0")
+        .about("Books in a user")
+        .author("Felix Figueroa");
+
+    let first_name = Arg::new("first name")
+        .long("f")
+        .help("first name of user")
+        .takes_value(true)
+        .required(true);
+
+    let last_name = Arg::new("last name")
+        .long("l")
+        .takes_value(true)
+        .help("last name of user")
+        .required(true);
+
+    let age = Arg::new("age")
+        .long("a")
+        .takes_value(true)
+        .help("age of the user")
+        .required(true);
+
+    let app = app.arg(first_name).arg(last_name).arg(age);
+    let matches = app.get_matches();
+    let name = matches
+        .value_of("first name")
+        .expect("First name is required");
+    let surname = matches.value_of("last name").expect("Surname is required");
+    let age: i8 = matches
+        .value_of("age")
+        .expect("Age is required")
+        .parse()
+        .unwrap();
+
+    println!("{:?}", name);
+    println!("{:?}", surname);
+    println!("{:?}", age);
+
+    /* let args: Vec<String> = env::args().collect();
     let path: &str = &args[0];
     if path.contains("/debug/") {
         println!("debug is running");
@@ -13,11 +53,13 @@ fn main() {
     else {
         panic!("The setting is neither debug or release");
     }
+    */
 
     let mut rng: ThreadRng = rand::thread_rng();
     let random_number = generate_float(&mut rng);
     println!("{}", random_number);
 }
+
 /// This function generates a float number using a number
 /// generator passed into the function.
 ///
