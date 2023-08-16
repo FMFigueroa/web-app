@@ -1,4 +1,5 @@
 use routes::create_routes;
+use sea_orm::Database;
 
 mod routes;
 
@@ -11,4 +12,8 @@ pub async fn run() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+pub async fn connect(database_uri:String){
+    let database = Database::connect(database_uri).await;
 }
