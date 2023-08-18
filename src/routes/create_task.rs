@@ -1,5 +1,5 @@
 use crate::database::tasks;
-use axum::{Extension, Json};
+use axum::{response::IntoResponse, Extension, Json};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
 use serde::Deserialize;
 
