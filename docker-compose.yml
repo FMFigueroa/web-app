@@ -18,3 +18,5 @@ services:
       
 volumes:
   db-data:
+
+# cmd : docker-compose up -d --wait
