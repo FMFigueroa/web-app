@@ -18,6 +18,6 @@ Welcome to the heart of backend efficiency and security! Our Rust project, power
 
 - Init Server:
 
-```
+  ```
   cargo watch -x run
-```
+  ```
