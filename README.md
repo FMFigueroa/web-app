@@ -10,7 +10,7 @@ Welcome to the heart of backend efficiency and security! Our Rust project, power
 
 ### Build
 
-- Start Docker Container with Postgresql DB:
+- Start Docker Container with PostgreSQL DB:
 
   ```
   docker-compose up -d --wait
