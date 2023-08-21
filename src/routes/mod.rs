@@ -4,6 +4,7 @@ mod get_tasks;
 mod hello_world;
 mod partial_update_task;
 mod update_tasks;
+mod users;
 
 use axum::{
     routing::{delete, get, patch, post, put},
@@ -17,6 +18,7 @@ use hello_world::hello_world;
 use partial_update_task::partial_update;
 use sea_orm::DatabaseConnection;
 use update_tasks::atomic_update;
+use users::{create_user, get_all_users};
 
 pub async fn create_routes(database: DatabaseConnection) -> Router {
     Router::new()
@@ -27,5 +29,7 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/tasks/:task_id", put(atomic_update))
         .route("/tasks/:task_id", patch(partial_update))
         .route("/tasks/:task_id", delete(delete_task))
+        .route("/users", post(create_user))
+        .route("/users", get(get_all_users))
         .layer(Extension(database))
 }
