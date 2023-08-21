@@ -1,9 +1,7 @@
-use crate::database::users::Entity as Users;
-use axum::{http::StatusCode, Extension, Json};
+use crate::database::users::{self, Entity as Users};
+use axum::{extract::Path, http::StatusCode, Extension, Json};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use serde::{Deserialize, Serialize};
-
-use crate::database::users;
 
 #[derive(Deserialize)]
 pub struct RequestUser {
@@ -15,6 +13,7 @@ pub struct RequestUser {
 pub struct ResponseUser {
     username: String,
     id: i32,
+    token: Option<String>,
 }
 
 pub async fn create_user(
@@ -24,6 +23,7 @@ pub async fn create_user(
     let new_user = users::ActiveModel {
         username: Set(request_user.username),
         password: Set(request_user.password),
+        token: Set(Some("L_#=$w5265wAFrs98ETdkjs:".to_owned())),
         ..Default::default()
     }
     .save(&database)
@@ -33,7 +33,24 @@ pub async fn create_user(
     Ok(Json(ResponseUser {
         username: new_user.username.unwrap(),
         id: new_user.id.unwrap(),
+        token: new_user.token.unwrap(),
     }))
+}
+
+pub async fn get_one_user(
+    Path(user_id): Path<i32>,
+    Extension(database): Extension<DatabaseConnection>,
+) -> Result<Json<ResponseUser>, StatusCode> {
+    let user = Users::find_by_id(user_id).one(&database).await.unwrap();
+    if let Some(user) = user {
+        Ok(Json(ResponseUser {
+            id: user.id,
+            username: user.username,
+            token: user.token,
+        }))
+    } else {
+        Err(StatusCode::NOT_FOUND)
+    }
 }
 
 pub async fn get_all_users(
@@ -47,6 +64,7 @@ pub async fn get_all_users(
         .map(|db_user| ResponseUser {
             id: db_user.id,
             username: db_user.username,
+            token: db_user.token,
         })
         .collect();
 
