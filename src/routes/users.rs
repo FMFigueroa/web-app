@@ -1,6 +1,12 @@
-use crate::database::users::{self, Entity as Users};
+use crate::{
+    database::users::{self, Entity as Users},
+    utils::jwt::create_jwt,
+};
 use axum::{extract::Path, http::StatusCode, Extension, Json};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
+    Set,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -20,10 +26,11 @@ pub async fn create_user(
     Extension(database): Extension<DatabaseConnection>,
     Json(request_user): Json<RequestUser>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
+    let jwt = create_jwt()?;
     let new_user = users::ActiveModel {
         username: Set(request_user.username),
-        password: Set(request_user.password),
-        token: Set(Some("L_#=$w5265wAFrs98ETdkjs:".to_owned())),
+        password: Set(hash_password(request_user.password)?),
+        token: Set(Some(jwt)),
         ..Default::default()
     }
     .save(&database)
@@ -69,4 +76,47 @@ pub async fn get_all_users(
         .collect();
 
     Ok(Json(users))
+}
+
+pub async fn login(
+    Extension(database): Extension<DatabaseConnection>,
+    Json(request_user): Json<RequestUser>,
+) -> Result<Json<ResponseUser>, StatusCode> {
+    let db_user = Users::find()
+        .filter(users::Column::Username.eq(request_user.username))
+        .one(&database)
+        .await
+        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    if let Some(db_user) = db_user {
+        if !verify_password(request_user.password, &db_user.password)? {
+            return Err(StatusCode::UNAUTHORIZED);
+        }
+
+        let new_token = create_jwt()?;
+        let mut user = db_user.into_active_model();
+
+        user.token = Set(Some(new_token));
+
+        let saved_user = user
+            .save(&database)
+            .await
+            .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok(Json(ResponseUser {
+            id: saved_user.id.unwrap(),
+            username: saved_user.username.unwrap(),
+            token: saved_user.token.unwrap(),
+        }))
+    } else {
+        Err(StatusCode::NOT_FOUND)
+    }
+}
+
+fn verify_password(password: String, hash: &str) -> Result<bool, StatusCode> {
+    bcrypt::verify(password, hash).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+fn hash_password(password: String) -> Result<String, StatusCode> {
+    bcrypt::hash(password, 14).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
 }

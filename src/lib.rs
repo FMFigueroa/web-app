@@ -2,6 +2,7 @@ use sea_orm::Database;
 
 mod database;
 mod routes;
+mod utils;
 
 pub async fn run(database_uri: &str) {
     let database = Database::connect(database_uri).await.unwrap();

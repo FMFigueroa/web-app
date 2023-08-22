@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.20"
+bcrypt = "0.15.0"
 chrono = { version = "0.4.26", features = ["serde"] }
 dotenvy = "0.15.7"
+jsonwebtoken = "8.3.0"
 sea-orm = { version = "0.12.2", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
 serde = { version = "1.0.183", features = ["derive"] }
 serde_with = "3.3.0"

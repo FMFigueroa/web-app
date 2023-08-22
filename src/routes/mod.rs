@@ -20,7 +20,7 @@ use partial_update_task::partial_update;
 use partial_update_user::partial_update_user;
 use sea_orm::DatabaseConnection;
 use update_tasks::atomic_update;
-use users::{create_user, get_all_users, get_one_user};
+use users::{create_user, get_all_users, get_one_user, login};
 
 pub async fn create_routes(database: DatabaseConnection) -> Router {
     Router::new()
@@ -35,5 +35,6 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/users", get(get_all_users))
         .route("/users/:user_id", get(get_one_user))
         .route("/users/:user_id", patch(partial_update_user))
+        .route("/users/login", post(login))
         .layer(Extension(database))
 }
