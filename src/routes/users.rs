@@ -1,12 +1,11 @@
 use crate::{
-    database::users::{self, Entity as Users},
+    database::users::{self, Entity as Users, Model},
     utils::jwt::create_jwt,
 };
 use axum::{
     extract::Path,
-    headers::{authorization::Bearer, Authorization},
     http::StatusCode,
-    Extension, Json, TypedHeader,
+    Extension, Json,
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
@@ -119,10 +118,10 @@ pub async fn login(
 }
 
 pub async fn logout(
-    authorization: TypedHeader<Authorization<Bearer>>,
     Extension(database): Extension<DatabaseConnection>,
+    Extension(user): Extension<Model>
 ) -> Result<(), StatusCode> {
-    let token = authorization.token();
+    /* let token = authorization.token();
     let mut user = if let Some(user) = Users::find()
         .filter(users::Column::Token.eq(Some(token)))
         .one(&database)
@@ -132,8 +131,10 @@ pub async fn logout(
         user.into_active_model()
     } else {
         return Err(StatusCode::UNAUTHORIZED);
-    };
+    }; */
 
+    let mut user = user.into_active_model();
+    
     user.token = Set(None);
 
     user.save(&database)

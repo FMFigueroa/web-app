@@ -6,10 +6,11 @@ mod partial_update_task;
 mod partial_update_user;
 mod update_tasks;
 mod users;
+mod middleware_user_session;
 
 use axum::{
     routing::{delete, get, patch, post, put},
-    Extension, Router,
+    Extension, Router, middleware,
 };
 
 use create_task::create_task;
@@ -21,10 +22,13 @@ use partial_update_user::partial_update_user;
 use sea_orm::DatabaseConnection;
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
+use middleware_user_session::user_session;
 
 pub async fn create_routes(database: DatabaseConnection) -> Router {
     Router::new()
         .route("/", get(hello_world))
+        .route("/users/logout", post(logout))
+        .route_layer(middleware::from_fn(user_session))
         .route("/tasks", post(create_task))
         .route("/tasks", get(get_all_tasks))
         .route("/tasks/:task_id", get(get_one_task))
@@ -36,6 +40,6 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/users/:user_id", get(get_one_user))
         .route("/users/:user_id", patch(partial_update_user))
         .route("/users/login", post(login))
-        .route("/users/logout", post(logout))
+        
         .layer(Extension(database))
 }

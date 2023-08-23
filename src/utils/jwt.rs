@@ -25,17 +25,17 @@ pub fn create_jwt() -> Result<String, StatusCode> {
     encode(&Header::default(), &claim, &key).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
-pub fn _is_valid(token: &str) -> Result<bool, AppError> {
+pub fn is_valid(token: &str) -> Result<bool, AppError> {
     dotenv().ok();
     let secret = dotenvy::var("JWT_SECRET").unwrap();
     let key = DecodingKey::from_secret(&secret.as_bytes());
     decode::<Claims>(token, &key, &Validation::new(Algorithm::HS256)).map_err(
         |error| match error.kind() {
-            jsonwebtoken::errors::ErrorKind::ExpiredSignature => AppError::_new(
+            jsonwebtoken::errors::ErrorKind::ExpiredSignature => AppError::new(
                 StatusCode::UNAUTHORIZED,
                 "Your session has expired, please login again",
             ),
-            _ => AppError::_new(
+            _ => AppError::new(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Something went wrong, please try again",
             ),
