@@ -2,7 +2,12 @@ use crate::{
     database::users::{self, Entity as Users},
     utils::jwt::create_jwt,
 };
-use axum::{extract::Path, http::StatusCode, Extension, Json};
+use axum::{
+    extract::Path,
+    headers::{authorization::Bearer, Authorization},
+    http::StatusCode,
+    Extension, Json, TypedHeader,
+};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
     Set,
@@ -111,6 +116,31 @@ pub async fn login(
     } else {
         Err(StatusCode::NOT_FOUND)
     }
+}
+
+pub async fn logout(
+    authorization: TypedHeader<Authorization<Bearer>>,
+    Extension(database): Extension<DatabaseConnection>,
+) -> Result<(), StatusCode> {
+    let token = authorization.token();
+    let mut user = if let Some(user) = Users::find()
+        .filter(users::Column::Token.eq(Some(token)))
+        .one(&database)
+        .await
+        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?
+    {
+        user.into_active_model()
+    } else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+
+    user.token = Set(None);
+
+    user.save(&database)
+        .await
+        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(())
 }
 
 fn verify_password(password: String, hash: &str) -> Result<bool, StatusCode> {

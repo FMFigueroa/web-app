@@ -7,7 +7,7 @@ pub struct AppError {
 }
 
 impl AppError {
-    pub fn new(code: StatusCode, message: impl Into<String>) -> Self {
+    pub fn _new(code: StatusCode, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
