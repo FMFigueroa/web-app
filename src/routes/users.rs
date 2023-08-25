@@ -3,20 +3,48 @@ use crate::{
     utils::jwt::create_jwt,
 };
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    Extension, Json,
+    async_trait,
+    body::HttpBody,
+    extract::{FromRequest, Path, State},
+    http::{Request, StatusCode},
+    BoxError, Extension, Json, RequestExt,
 };
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
     Set,
 };
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Validate)]
 pub struct RequestUser {
-    username: String,
-    password: String,
+    #[validate(email(message = "must be a valid email"))]
+    pub username: String,
+    #[validate(length(min = 8, message = "must have at least 8 characters"))]
+    pub password: String,
+}
+#[async_trait]
+impl<S, B> FromRequest<S, B> for RequestUser
+where
+    B: HttpBody + Send + 'static,
+    B::Data: Send,
+    B::Error: Into<BoxError>,
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request(request: Request<B>, _state: &S) -> Result<Self, Self::Rejection> {
+        let Json(user) = request
+            .extract::<Json<RequestUser>, _>()
+            .await
+            .map_err(|error| (StatusCode::BAD_REQUEST, format!("{}", error)))?;
+
+        if let Err(errors) = user.validate() {
+            return Err((StatusCode::BAD_REQUEST, format!("{}", errors)));
+        }
+
+        Ok(user)
+    }
 }
 
 #[derive(Serialize)]
@@ -28,12 +56,12 @@ pub struct ResponseUser {
 
 pub async fn create_user(
     State(database): State<DatabaseConnection>,
-    Json(request_user): Json<RequestUser>,
+    user: RequestUser,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let jwt = create_jwt()?;
     let new_user = users::ActiveModel {
-        username: Set(request_user.username),
-        password: Set(hash_password(request_user.password)?),
+        username: Set(user.username),
+        password: Set(hash_password(user.password)?),
         token: Set(Some(jwt)),
         ..Default::default()
     }
