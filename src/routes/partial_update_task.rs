@@ -4,7 +4,11 @@
 
 use crate::database::tasks;
 use crate::database::tasks::Entity as Tasks;
-use axum::{extract::Path, http::StatusCode, Extension, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use sea_orm::{
     prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter, Set,
@@ -42,7 +46,7 @@ pub struct RequestTask {
 
 pub async fn partial_update(
     Path(task_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(request_task): Json<RequestTask>,
 ) -> Result<(), StatusCode> {
     let mut db_task = if let Some(task) = Tasks::find_by_id(task_id)

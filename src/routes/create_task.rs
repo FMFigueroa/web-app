@@ -1,9 +1,10 @@
 use crate::database::tasks;
 use crate::database::users::{self, Entity as Users};
+use axum::extract::State;
 use axum::{
     headers::{authorization::Bearer, Authorization},
     http::StatusCode,
-    Extension, Json, TypedHeader,
+    Json, TypedHeader,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde::Deserialize;
@@ -17,7 +18,7 @@ pub struct RequestTask {
 
 pub async fn create_task(
     authorization: TypedHeader<Authorization<Bearer>>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(request_task): Json<RequestTask>,
 ) -> Result<(), StatusCode> {
     let token = authorization.token();

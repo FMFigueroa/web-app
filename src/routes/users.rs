@@ -3,7 +3,7 @@ use crate::{
     utils::jwt::create_jwt,
 };
 use axum::{
-    extract::Path,
+    extract::{Path, State},
     http::StatusCode,
     Extension, Json,
 };
@@ -27,7 +27,7 @@ pub struct ResponseUser {
 }
 
 pub async fn create_user(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(request_user): Json<RequestUser>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let jwt = create_jwt()?;
@@ -50,7 +50,7 @@ pub async fn create_user(
 
 pub async fn get_one_user(
     Path(user_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let user = Users::find_by_id(user_id).one(&database).await.unwrap();
     if let Some(user) = user {
@@ -65,7 +65,7 @@ pub async fn get_one_user(
 }
 
 pub async fn get_all_users(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
 ) -> Result<Json<Vec<ResponseUser>>, StatusCode> {
     let users = Users::find()
         .all(&database)
@@ -83,7 +83,7 @@ pub async fn get_all_users(
 }
 
 pub async fn login(
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(request_user): Json<RequestUser>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let db_user = Users::find()
@@ -118,8 +118,8 @@ pub async fn login(
 }
 
 pub async fn logout(
-    Extension(database): Extension<DatabaseConnection>,
-    Extension(user): Extension<Model>
+    State(database): State<DatabaseConnection>,
+    Extension(user): Extension<Model>,
 ) -> Result<(), StatusCode> {
     /* let token = authorization.token();
     let mut user = if let Some(user) = Users::find()
@@ -134,7 +134,7 @@ pub async fn logout(
     }; */
 
     let mut user = user.into_active_model();
-    
+
     user.token = Set(None);
 
     user.save(&database)

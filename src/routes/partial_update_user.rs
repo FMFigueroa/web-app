@@ -2,7 +2,11 @@
 ** Partial Updates Users
 */
 use crate::database::users::{self, Entity as Users};
-use axum::{extract::Path, http::StatusCode, Extension, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
 use sea_orm::{
     prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter, Set,
@@ -28,7 +32,7 @@ pub struct RequestUser {
 
 pub async fn partial_update_user(
     Path(user_id): Path<i32>,
-    Extension(database): Extension<DatabaseConnection>,
+    State(database): State<DatabaseConnection>,
     Json(request_user): Json<RequestUser>,
 ) -> Result<(), StatusCode> {
     let mut db_user = if let Some(user) = Users::find_by_id(user_id)
