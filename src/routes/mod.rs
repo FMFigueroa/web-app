@@ -8,6 +8,9 @@ mod partial_update_user;
 mod update_tasks;
 mod users;
 
+// essentials routes
+mod mirror_body_string;
+
 use axum::{
     extract::FromRef,
     middleware,
@@ -25,6 +28,7 @@ use partial_update_user::partial_update_user;
 use sea_orm::DatabaseConnection;
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
+use mirror_body_string::mirror_body_string;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
@@ -40,6 +44,7 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
             user_session,
         ))
         .route("/", get(hello_world))
+        .route("/mirror_body_string", post(mirror_body_string))
         .route("/tasks", post(create_task))
         .route("/tasks", get(get_all_tasks))
         .route("/tasks/:task_id", get(get_one_task))
