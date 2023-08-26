@@ -15,6 +15,7 @@ mod users;
 mod mirror_body_json;
 mod mirror_body_string;
 mod path_variables;
+mod query_params;
 
 use axum::{
     extract::FromRef,
@@ -33,6 +34,7 @@ use mirror_body_string::mirror_body_string;
 use partial_update_task::partial_update;
 use partial_update_user::partial_update_user;
 use path_variables::{hard_coded_path, path_variables};
+use query_params::query_params;
 use sea_orm::DatabaseConnection;
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
@@ -55,6 +57,7 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/mirror_body_json", post(mirror_body_json))
         .route("/path_variables/15", get(hard_coded_path))
         .route("/path_variables/:id", get(path_variables))
+        .route("/query_params", get(query_params))
         .route("/tasks", post(create_task))
         .route("/tasks", get(get_all_tasks))
         .route("/tasks/:task_id", get(get_one_task))
