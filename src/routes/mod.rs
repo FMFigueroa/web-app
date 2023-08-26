@@ -1,14 +1,18 @@
+// task routes
 mod create_task;
 mod delete_task;
 mod get_tasks;
 mod hello_world;
-mod middleware_user_session;
 mod partial_update_task;
-mod partial_update_user;
 mod update_tasks;
+
+// users routes
+mod middleware_user_session;
+mod partial_update_user;
 mod users;
 
 // essentials routes
+mod mirror_body_json;
 mod mirror_body_string;
 
 use axum::{
@@ -23,12 +27,13 @@ use delete_task::delete_task;
 use get_tasks::{get_all_tasks, get_one_task};
 use hello_world::hello_world;
 use middleware_user_session::user_session;
+use mirror_body_json::mirror_body_json;
+use mirror_body_string::mirror_body_string;
 use partial_update_task::partial_update;
 use partial_update_user::partial_update_user;
 use sea_orm::DatabaseConnection;
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
-use mirror_body_string::mirror_body_string;
 
 #[derive(Clone, FromRef)]
 pub struct AppState {
@@ -45,6 +50,7 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         ))
         .route("/", get(hello_world))
         .route("/mirror_body_string", post(mirror_body_string))
+        .route("/mirror_body_json", post(mirror_body_json))
         .route("/tasks", post(create_task))
         .route("/tasks", get(get_all_tasks))
         .route("/tasks/:task_id", get(get_one_task))
