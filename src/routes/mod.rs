@@ -21,6 +21,7 @@ mod mirror_user_agent;
 mod path_variables;
 mod query_params;
 mod read_middleware_custom_header;
+mod returns_201;
 mod set_middleware_custom_header;
 
 use axum::{
@@ -45,6 +46,7 @@ use partial_update_task::partial_update;
 use partial_update_user::partial_update_user;
 use path_variables::{hard_coded_path, path_variables};
 use query_params::query_params;
+use returns_201::returns_201;
 use sea_orm::DatabaseConnection;
 use set_middleware_custom_header::set_middleware_custom_header;
 use tower_http::cors::{Any, CorsLayer};
@@ -111,5 +113,6 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .layer(Extension(shared_data))
         .layer(cors)
         .route("/always_errors", get(always_errors))
+        .route("/returns_201", post(returns_201))
         .with_state(app_state)
 }
