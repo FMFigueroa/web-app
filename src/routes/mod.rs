@@ -13,6 +13,7 @@ mod users;
 
 // essentials routes
 mod always_errors;
+mod get_json;
 mod middleware_message;
 mod mirror_body_json;
 mod mirror_body_string;
@@ -35,6 +36,7 @@ use axum::{
 use always_errors::always_errors;
 use create_task::create_task;
 use delete_task::delete_task;
+use get_json::get_json;
 use get_tasks::{get_all_tasks, get_one_task};
 use hello_world::hello_world;
 use middleware_user_session::user_session;
@@ -114,5 +116,6 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .layer(cors)
         .route("/always_errors", get(always_errors))
         .route("/returns_201", post(returns_201))
+        .route("/get_json", get(get_json))
         .with_state(app_state)
 }
