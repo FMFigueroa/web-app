@@ -76,6 +76,11 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
     };
 
     Router::new()
+        .route(
+            "/read_middleware_custom_header",
+            get(read_middleware_custom_header),
+        )
+        .route_layer(middleware::from_fn(set_middleware_custom_header))
         .route("/users/logout", post(logout))
         .route("/tasks", post(create_task))
         .route("/tasks", get(get_all_tasks))
@@ -103,10 +108,5 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/middleware_message", get(middleware_message))
         .layer(Extension(shared_data))
         .layer(cors)
-        .route(
-            "/read_middleware_custom_header",
-            get(read_middleware_custom_header),
-        )
-        .route_layer(middleware::from_fn(set_middleware_custom_header))
         .with_state(app_state)
 }
