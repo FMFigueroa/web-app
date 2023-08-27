@@ -1,16 +1,21 @@
-use sea_orm::Database;
+use std::net::SocketAddr;
 
+use app_state::AppState;
+use router::create_router;
+
+pub mod app_state;
 mod database;
+mod middleware;
+mod queries;
+mod router;
 mod routes;
-mod utils;
+pub mod utils;
 
-pub async fn run(database_uri: &str) {
-    let database = Database::connect(database_uri).await.unwrap();
-    // build our application with a single route
-    let app = routes::create_routes(database).await;
+pub async fn run(app_state: AppState) {
+    let app = create_router(app_state);
+    let address = SocketAddr::from(([0, 0, 0, 0], 4000));
 
-    // run it with hyper on localhost:3000
-    axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
+    axum::Server::bind(&address)
         .serve(app.into_make_service())
         .await
         .unwrap();
