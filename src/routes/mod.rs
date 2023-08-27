@@ -24,6 +24,7 @@ mod query_params;
 mod read_middleware_custom_header;
 mod returns_201;
 mod set_middleware_custom_header;
+mod validate_json;
 
 use axum::{
     extract::FromRef,
@@ -54,6 +55,7 @@ use set_middleware_custom_header::set_middleware_custom_header;
 use tower_http::cors::{Any, CorsLayer};
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
+use validate_json::validate_json;
 
 use self::{
     middleware_message::middleware_message,
@@ -117,5 +119,6 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/always_errors", get(always_errors))
         .route("/returns_201", post(returns_201))
         .route("/get_json", get(get_json))
+        .route("/post_json", post(validate_json))
         .with_state(app_state)
 }
