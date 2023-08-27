@@ -19,6 +19,8 @@ mod mirror_custom_header;
 mod mirror_user_agent;
 mod path_variables;
 mod query_params;
+mod read_middleware_custom_header;
+mod set_middleware_custom_header;
 
 use axum::{
     extract::FromRef,
@@ -42,11 +44,15 @@ use partial_update_user::partial_update_user;
 use path_variables::{hard_coded_path, path_variables};
 use query_params::query_params;
 use sea_orm::DatabaseConnection;
+use set_middleware_custom_header::set_middleware_custom_header;
 use tower_http::cors::{Any, CorsLayer};
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
 
-use self::middleware_message::middleware_message;
+use self::{
+    middleware_message::middleware_message,
+    read_middleware_custom_header::read_middleware_custom_header,
+};
 
 #[derive(Clone, FromRef)]
 pub struct SharedData {
@@ -97,5 +103,10 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/middleware_message", get(middleware_message))
         .layer(Extension(shared_data))
         .layer(cors)
+        .route(
+            "/read_middleware_custom_header",
+            get(read_middleware_custom_header),
+        )
+        .route_layer(middleware::from_fn(set_middleware_custom_header))
         .with_state(app_state)
 }
