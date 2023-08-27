@@ -21,6 +21,7 @@ mod query_params;
 
 use axum::{
     extract::FromRef,
+    http::Method,
     middleware,
     routing::{delete, get, patch, post, put},
     Router,
@@ -40,6 +41,7 @@ use partial_update_user::partial_update_user;
 use path_variables::{hard_coded_path, path_variables};
 use query_params::query_params;
 use sea_orm::DatabaseConnection;
+use tower_http::cors::{Any, CorsLayer};
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
 
@@ -50,6 +52,11 @@ pub struct AppState {
 
 pub async fn create_routes(database: DatabaseConnection) -> Router {
     let app_state = AppState { database };
+
+    let cors = CorsLayer::new()
+        .allow_methods([Method::GET, Method::POST])
+        .allow_origin(Any);
+
     Router::new()
         .route("/users/logout", post(logout))
         .route_layer(middleware::from_fn_with_state(
@@ -64,6 +71,7 @@ pub async fn create_routes(database: DatabaseConnection) -> Router {
         .route("/query_params", get(query_params))
         .route("/mirror_user_agent", get(mirror_user_agent))
         .route("/mirror_custom_header", get(mirror_custom_header))
+        .layer(cors)
         .route("/tasks", post(create_task))
         .route("/tasks", get(get_all_tasks))
         .route("/tasks/:task_id", get(get_one_task))
