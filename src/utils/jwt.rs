@@ -9,37 +9,42 @@ use super::app_error::AppError;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Claims {
     exp: usize,
-    iat: usize,
+    username: String,
 }
 
-pub fn create_jwt() -> Result<String, StatusCode> {
+pub fn create_token(secret: &str, username: String) -> Result<String, AppError> {
     dotenv().ok();
-    let mut now = Utc::now();
-    let iat = now.timestamp() as usize;
-    let expires_in = Duration::hours(1);
-    now += expires_in;
-    let exp = now.timestamp() as usize;
-    let claim = Claims { exp, iat };
-    let secret = dotenvy::var("JWT_SECRET").unwrap();
-    let key = EncodingKey::from_secret(&secret.as_bytes());
-    encode(&Header::default(), &claim, &key).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
+    let now = Utc::now();
+    let expires_at = Duration::hours(1);
+    let expires_at = now + expires_at;
+    let exp = expires_at.timestamp() as usize;
+    let claims = Claims { exp, username };
+    let token_header = Header::default();
+    let key = EncodingKey::from_secret(secret.as_bytes());
+
+    encode(&token_header, &claims, &key).map_err(|error| {
+        eprintln!("Error creating token: {:?}", error);
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "There was an error, please try again later",
+        )
+    })
 }
 
-pub fn is_valid(token: &str) -> Result<bool, AppError> {
-    dotenv().ok();
-    let secret = dotenvy::var("JWT_SECRET").unwrap();
-    let key = DecodingKey::from_secret(&secret.as_bytes());
-    decode::<Claims>(token, &key, &Validation::new(Algorithm::HS256)).map_err(
-        |error| match error.kind() {
-            jsonwebtoken::errors::ErrorKind::ExpiredSignature => AppError::new(
-                StatusCode::UNAUTHORIZED,
-                "Your session has expired, please login again",
-            ),
-            _ => AppError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Something went wrong, please try again",
-            ),
-        },
-    )?;
-    Ok(true)
+pub fn validate_token(secret: &str, token: &str) -> Result<bool, AppError> {
+    let key = DecodingKey::from_secret(secret.as_bytes());
+    let validation = Validation::new(Algorithm::HS256);
+    decode::<Claims>(token, &key, &validation)
+        .map_err(|error| match error.kind() {
+            jsonwebtoken::errors::ErrorKind::InvalidToken
+            | jsonwebtoken::errors::ErrorKind::InvalidSignature
+            | jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+                AppError::new(StatusCode::UNAUTHORIZED, "not authenticated!")
+            }
+            _ => {
+                eprintln!("Error validating token: {:?}", error);
+                AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error validating token")
+            }
+        })
+        .map(|_claim| true)
 }

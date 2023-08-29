@@ -1,6 +1,6 @@
 use crate::{
     database::users::{self, Entity as Users},
-    utils::{app_error::AppError, jwt::is_valid},
+    utils::{app_error::AppError, jwt::validate_token, token_wrapper::TokenWrapper},
 };
 use axum::{
     extract::State,
@@ -15,6 +15,7 @@ use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 pub async fn user_session<T>(
     TypedHeader(token): TypedHeader<Authorization<Bearer>>,
     State(database): State<DatabaseConnection>,
+    State(jwt_secret): State<TokenWrapper>,
     mut request: Request<T>,
     next: Next<T>,
 ) -> Result<Response, AppError> {
@@ -26,7 +27,7 @@ pub async fn user_session<T>(
         .map_err(|_error| {
             AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
         })?;
-    is_valid(&token)?; // Validating token after getting from the database to obsfucate that the token is wrong. Feel free to move up if you are not worried about that.
+    validate_token(&jwt_secret.0, &token)?; // Validating token after getting from the database to obsfucate that the token is wrong. Feel free to move up if you are not worried about that.
 
     let Some(user) = user else {
         return Err(AppError::new(

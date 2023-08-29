@@ -43,6 +43,7 @@ pub async fn get_one_task(
 #[derive(Deserialize)]
 pub struct GetTasksQueryParams {
     priority: Option<String>,
+    user_id: Option<i32>,
 }
 
 pub async fn get_all_tasks(
@@ -58,8 +59,15 @@ pub async fn get_all_tasks(
         };
     }
 
+    let mut user_id_filter = Condition::all();
+    if let Some (user_id) = query_params.user_id {
+        user_id_filter = user_id_filter.add(tasks::Column::UserId.eq(user_id));
+    }
+
+
     let tasks = Tasks::find()
         .filter(priority_filter)
+        .filter(user_id_filter)
         .filter(tasks::Column::DeletedAt.is_null())
         .all(&database)
         .await

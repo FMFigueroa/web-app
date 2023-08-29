@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 
 pub mod app_state;
 mod database;
+mod queires;
 mod routes;
 pub mod utils;
 

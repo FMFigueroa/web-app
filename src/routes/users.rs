@@ -1,6 +1,7 @@
 use crate::{
-    database::users::{self, Entity as Users, Model},
-    utils::jwt::create_jwt,
+    database::users::{self, Entity as Users},
+    queires::user_queries::{find_by_username, save_active_user},
+    utils::{app_error::AppError, jwt::create_token, token_wrapper::TokenWrapper},
 };
 use axum::{
     async_trait,
@@ -9,10 +10,8 @@ use axum::{
     http::{Request, StatusCode},
     BoxError, Extension, Json, RequestExt,
 };
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel, QueryFilter,
-    Set,
-};
+use bcrypt::{hash, verify};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
@@ -56,18 +55,35 @@ pub struct ResponseUser {
 
 pub async fn create_user(
     State(db): State<DatabaseConnection>,
+    State(jwt_secret): State<TokenWrapper>,
     user: RequestUser,
-) -> Result<Json<ResponseUser>, StatusCode> {
-    let jwt = create_jwt()?;
+) -> Result<Json<ResponseUser>, AppError> {
     let new_user = users::ActiveModel {
-        username: Set(user.username),
-        password: Set(hash_password(user.password)?),
-        token: Set(Some(jwt)),
+        username: Set(user.username.clone()),
+        password: Set(hash_password(&user.password)?),
+        token: Set(Some(create_token(&jwt_secret.0, user.username)?)),
         ..Default::default()
     }
     .save(&db)
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .map_err(|error| {
+        let error_message = error.to_string();
+
+        if error_message
+            .contains("duplicate key value violates unique constraint \"users_username_key\"")
+        {
+            AppError::new(
+                StatusCode::BAD_REQUEST,
+                "Username already taken, try again with a different user name",
+            )
+        } else {
+            eprintln!("Error creating user: {:?}", error_message);
+            AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong, please try again",
+            )
+        }
+    })?;
 
     Ok(Json(ResponseUser {
         username: new_user.username.unwrap(),
@@ -112,70 +128,60 @@ pub async fn get_all_users(
 
 pub async fn login(
     State(db): State<DatabaseConnection>,
+    State(jwt_secret): State<TokenWrapper>,
     Json(request_user): Json<RequestUser>,
-) -> Result<Json<ResponseUser>, StatusCode> {
-    let db_user = Users::find()
-        .filter(users::Column::Username.eq(request_user.username))
-        .one(&db)
-        .await
-        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> Result<Json<ResponseUser>, AppError> {
+    let user = find_by_username(&db, request_user.username).await?;
 
-    if let Some(db_user) = db_user {
-        if !verify_password(request_user.password, &db_user.password)? {
-            return Err(StatusCode::UNAUTHORIZED);
-        }
-
-        let new_token = create_jwt()?;
-        let mut user = db_user.into_active_model();
-
-        user.token = Set(Some(new_token));
-
-        let saved_user = user
-            .save(&db)
-            .await
-            .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        Ok(Json(ResponseUser {
-            id: saved_user.id.unwrap(),
-            username: saved_user.username.unwrap(),
-            token: saved_user.token.unwrap(),
-        }))
-    } else {
-        Err(StatusCode::NOT_FOUND)
+    if !verify_password(&request_user.password, &user.password)? {
+        return Err(AppError::new(
+            StatusCode::UNAUTHORIZED,
+            "incorrect username and/or password",
+        ));
     }
+
+    let new_token = create_token(&jwt_secret.0, user.username.clone())?;
+    let mut user = user.into_active_model();
+
+    user.token = Set(Some(new_token));
+
+    let user = save_active_user(&db, user).await?;
+
+    let response = ResponseUser {
+        id: user.id,
+        username: user.username,
+        token: user.token,
+    };
+
+    Ok(Json(response))
 }
 
 pub async fn logout(
+    Extension(user): Extension<users::Model>,
     State(db): State<DatabaseConnection>,
-    Extension(user): Extension<Model>,
-) -> Result<(), StatusCode> {
-    /* let token = authorization.token();
-    let mut user = if let Some(user) = Users::find()
-        .filter(users::Column::Token.eq(Some(token)))
-        .one(&database)
-        .await
-        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?
-    {
-        user.into_active_model()
-    } else {
-        return Err(StatusCode::UNAUTHORIZED);
-    }; */
-
+) -> Result<StatusCode, AppError> {
     let mut user = user.into_active_model();
 
     user.token = Set(None);
 
-    user.save(&db)
-        .await
-        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
+    save_active_user(&db, user).await?;
 
-    Ok(())
+    Ok(StatusCode::OK)
 }
 
-fn verify_password(password: String, hash: &str) -> Result<bool, StatusCode> {
-    bcrypt::verify(password, hash).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
+fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
+    verify(password, hash).map_err(|error| {
+        eprintln!("Error verifying password: {:?}", error);
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "The was a problem verifying your password",
+        )
+    })
 }
 
-fn hash_password(password: String) -> Result<String, StatusCode> {
-    bcrypt::hash(password, 14).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
+fn hash_password(password: &str) -> Result<String, AppError> {
+    hash(password, 14).map_err(|error| {
+        eprintln!("Error hashing password: {:?}", error);
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error securing password")
+    })
 }
