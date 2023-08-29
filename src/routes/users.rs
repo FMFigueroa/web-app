@@ -55,7 +55,7 @@ pub struct ResponseUser {
 }
 
 pub async fn create_user(
-    State(database): State<DatabaseConnection>,
+    State(db): State<DatabaseConnection>,
     user: RequestUser,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let jwt = create_jwt()?;
@@ -65,7 +65,7 @@ pub async fn create_user(
         token: Set(Some(jwt)),
         ..Default::default()
     }
-    .save(&database)
+    .save(&db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -78,9 +78,9 @@ pub async fn create_user(
 
 pub async fn get_one_user(
     Path(user_id): Path<i32>,
-    State(database): State<DatabaseConnection>,
+    State(db): State<DatabaseConnection>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
-    let user = Users::find_by_id(user_id).one(&database).await.unwrap();
+    let user = Users::find_by_id(user_id).one(&db).await.unwrap();
     if let Some(user) = user {
         Ok(Json(ResponseUser {
             id: user.id,
@@ -93,10 +93,10 @@ pub async fn get_one_user(
 }
 
 pub async fn get_all_users(
-    State(database): State<DatabaseConnection>,
+    State(db): State<DatabaseConnection>,
 ) -> Result<Json<Vec<ResponseUser>>, StatusCode> {
     let users = Users::find()
-        .all(&database)
+        .all(&db)
         .await
         .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?
         .into_iter()
@@ -111,12 +111,12 @@ pub async fn get_all_users(
 }
 
 pub async fn login(
-    State(database): State<DatabaseConnection>,
+    State(db): State<DatabaseConnection>,
     Json(request_user): Json<RequestUser>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let db_user = Users::find()
         .filter(users::Column::Username.eq(request_user.username))
-        .one(&database)
+        .one(&db)
         .await
         .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -131,7 +131,7 @@ pub async fn login(
         user.token = Set(Some(new_token));
 
         let saved_user = user
-            .save(&database)
+            .save(&db)
             .await
             .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -146,7 +146,7 @@ pub async fn login(
 }
 
 pub async fn logout(
-    State(database): State<DatabaseConnection>,
+    State(db): State<DatabaseConnection>,
     Extension(user): Extension<Model>,
 ) -> Result<(), StatusCode> {
     /* let token = authorization.token();
@@ -165,7 +165,7 @@ pub async fn logout(
 
     user.token = Set(None);
 
-    user.save(&database)
+    user.save(&db)
         .await
         .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?;
 

@@ -34,6 +34,8 @@ use axum::{
     Extension, Router,
 };
 
+use crate::app_state::AppState;
+
 use always_errors::always_errors;
 use create_task::create_task;
 use delete_task::delete_task;
@@ -50,12 +52,13 @@ use partial_update_user::partial_update_user;
 use path_variables::{hard_coded_path, path_variables};
 use query_params::query_params;
 use returns_201::returns_201;
-use sea_orm::DatabaseConnection;
 use set_middleware_custom_header::set_middleware_custom_header;
 use tower_http::cors::{Any, CorsLayer};
 use update_tasks::atomic_update;
 use users::{create_user, get_all_users, get_one_user, login, logout};
 use validate_json::validate_json;
+
+
 
 use self::{
     middleware_message::middleware_message,
@@ -67,13 +70,7 @@ pub struct SharedData {
     pub message: String,
 }
 
-#[derive(Clone, FromRef)]
-pub struct AppState {
-    pub database: DatabaseConnection,
-}
-
-pub async fn create_routes(database: DatabaseConnection) -> Router {
-    let app_state = AppState { database };
+pub async fn create_routes(app_state: AppState) -> Router {
 
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
