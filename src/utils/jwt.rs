@@ -16,7 +16,7 @@ pub fn create_jwt() -> Result<String, StatusCode> {
     dotenv().ok();
     let mut now = Utc::now();
     let iat = now.timestamp() as usize;
-    let expires_in = Duration::seconds(30);
+    let expires_in = Duration::hours(1);
     now += expires_in;
     let exp = now.timestamp() as usize;
     let claim = Claims { exp, iat };
