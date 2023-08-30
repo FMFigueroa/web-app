@@ -33,6 +33,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
     Extension, Router,
 };
+use tower_cookies::CookieManagerLayer;
 
 use crate::app_state::AppState;
 
@@ -109,6 +110,7 @@ pub async fn create_routes(app_state: AppState) -> Router {
         .route("/mirror_custom_header", get(mirror_custom_header))
         .route("/middleware_message", get(middleware_message))
         .layer(Extension(shared_data))
+        .layer(CookieManagerLayer::new())
         .layer(cors)
         .route("/always_errors", get(always_errors))
         .route("/returns_201", post(returns_201))

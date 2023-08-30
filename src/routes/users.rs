@@ -13,6 +13,7 @@ use axum::{
 use bcrypt::{hash, verify};
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set};
 use serde::{Deserialize, Serialize};
+use tower_cookies::{Cookie, Cookies};
 use validator::Validate;
 
 #[derive(Deserialize, Debug, Validate)]
@@ -127,6 +128,7 @@ pub async fn get_all_users(
 }
 
 pub async fn login(
+    cookies: Cookies,
     State(db): State<DatabaseConnection>,
     State(jwt_secret): State<TokenWrapper>,
     Json(request_user): Json<RequestUser>,
@@ -143,9 +145,11 @@ pub async fn login(
     let new_token = create_token(&jwt_secret.0, user.username.clone())?;
     let mut user = user.into_active_model();
 
-    user.token = Set(Some(new_token));
+    user.token = Set(Some(new_token.clone()));
 
     let user = save_active_user(&db, user).await?;
+
+    cookies.add(Cookie::new("auth-token", new_token));
 
     let response = ResponseUser {
         id: user.id,
