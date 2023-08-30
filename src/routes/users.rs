@@ -161,6 +161,7 @@ pub async fn login(
 }
 
 pub async fn logout(
+    cookies: Cookies,
     Extension(user): Extension<users::Model>,
     State(db): State<DatabaseConnection>,
 ) -> Result<StatusCode, AppError> {
@@ -169,6 +170,8 @@ pub async fn logout(
     user.token = Set(None);
 
     save_active_user(&db, user).await?;
+
+    cookies.remove(Cookie::named("auth-token"));
 
     Ok(StatusCode::OK)
 }
