@@ -1,13 +1,14 @@
 use dotenvy::dotenv;
+use eyre::Result;
 use sea_orm::Database;
 use web_app::{app_state::AppState, run, utils::token_wrapper::TokenWrapper};
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     dotenv().ok();
     // create app state variables
-    let database_url = dotenvy::var("DATABASE_URL").unwrap();
-    let jwt_secret = dotenvy::var("JWT_SECRET").unwrap();
+    let database_url = dotenvy::var("DATABASE_URL")?;
+    let jwt_secret = dotenvy::var("JWT_SECRET")?;
 
     // connect database
     let db = match Database::connect(database_url).await {
@@ -23,6 +24,7 @@ async fn main() {
         db,
         jwt_secret: TokenWrapper(jwt_secret),
     };
+    run(app_state).await?;
 
-    run(app_state).await;
+    Ok(())
 }
