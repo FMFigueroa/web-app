@@ -1,8 +1,15 @@
-use crate::database::tasks::{self, Entity as Tasks};
+use crate::{
+    database::{
+        tasks::{self, Entity as Tasks},
+        users::Model,
+    },
+    queires::task_queries::find_task_by_id,
+    utils::app_error::AppError,
+};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
+    Extension, Json,
 };
 use chrono::{DateTime, FixedOffset};
 use sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter};
@@ -14,32 +21,32 @@ pub struct ResponseTask {
     title: String,
     priority: Option<String>,
     description: Option<String>,
-    deleted_at: Option<DateTime<FixedOffset>>,
+    completed_at: Option<String>,
     user_id: Option<i32>,
+    deleted_at: Option<DateTime<FixedOffset>>,
 }
 
 pub async fn get_one_task(
     Path(task_id): Path<i32>,
-    State(database): State<DatabaseConnection>,
-) -> Result<Json<ResponseTask>, StatusCode> {
-    let task = Tasks::find_by_id(task_id)
-        .filter(tasks::Column::DeletedAt.is_null())
-        .one(&database)
-        .await
-        .unwrap();
-    if let Some(task) = task {
-        Ok(Json(ResponseTask {
+    State(db): State<DatabaseConnection>,
+    Extension(user): Extension<Model>,
+) -> Result<(StatusCode, Json<ResponseTask>), AppError> {
+    let task = find_task_by_id(&db, task_id, user.id).await?;
+
+    Ok((
+        StatusCode::OK,
+        Json(ResponseTask {
             id: task.id,
             title: task.title,
-            priority: task.priority,
             description: task.description,
-            deleted_at: task.deleted_at,
+            priority: task.priority,
+            completed_at: task.completed_at.map(|time| time.to_string()),
             user_id: task.user_id,
-        }))
-    } else {
-        Err(StatusCode::NOT_FOUND)
-    }
+            deleted_at: task.deleted_at,
+        }),
+    ))
 }
+
 #[derive(Deserialize)]
 pub struct GetTasksQueryParams {
     priority: Option<String>,
@@ -75,10 +82,11 @@ pub async fn get_all_tasks(
         .map(|db_task| ResponseTask {
             id: db_task.id,
             title: db_task.title,
-            priority: db_task.priority,
             description: db_task.description,
-            deleted_at: db_task.deleted_at,
+            priority: db_task.priority,
+            completed_at: db_task.completed_at.map(|time| time.to_string()),
             user_id: db_task.user_id,
+            deleted_at: db_task.deleted_at,
         })
         .collect();
 
