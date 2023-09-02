@@ -1,5 +1,5 @@
 // task routes
-mod create_task;
+pub mod create_task;
 mod delete_task;
 mod get_tasks;
 mod hello_world;

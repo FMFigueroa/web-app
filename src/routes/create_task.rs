@@ -1,50 +1,87 @@
-use crate::database::tasks;
-use crate::database::users::{self, Entity as Users};
-use axum::extract::State;
-use axum::{
-    headers::{authorization::Bearer, Authorization},
-    http::StatusCode,
-    Json, TypedHeader,
-};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
-use serde::Deserialize;
+use crate::database::users::Model as UserModel;
+use crate::queires::task_queries;
+use crate::utils::app_error::AppError;
+use axum::body::HttpBody;
+use axum::extract::{FromRequest, State};
+use axum::http::Request;
+use axum::{async_trait, BoxError, Extension, RequestExt};
+use axum::{http::StatusCode, Json};
+use sea_orm::DatabaseConnection;
+use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(Deserialize)]
-pub struct RequestTask {
-    title: String,
-    priority: Option<String>,
-    description: Option<String>,
+#[derive(Debug, Validate, Deserialize)]
+pub struct ValidateCreateTask {
+    #[validate(length(min = 1, max = 1))]
+    pub priority: Option<String>,
+    #[validate(required(message = "missing task title"))]
+    pub title: Option<String>,
+    pub description: Option<String>,
+}
+
+#[async_trait]
+impl<S, B> FromRequest<S, B> for ValidateCreateTask
+where
+    B: HttpBody + Send + 'static,
+    B::Data: Send,
+    B::Error: Into<BoxError>,
+    S: Send + Sync,
+{
+    type Rejection = AppError;
+
+    async fn from_request(
+        req: Request<B>,
+        _state: &S,
+    ) -> Result<ValidateCreateTask, Self::Rejection> {
+        let Json(task) = req
+            .extract::<Json<ValidateCreateTask>, _>()
+            .await
+            .map_err(|error| {
+                eprintln!("Error extracting new task: {:?}", error);
+                AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Something went wrong, please try again",
+                )
+            })?;
+
+        if let Err(errors) = task.validate() {
+            let field_errors = errors.field_errors();
+            for (_, error) in field_errors {
+                return Err(AppError::new(
+                    StatusCode::BAD_REQUEST,
+                    error.first().unwrap().clone().message.unwrap().to_string(), // feel safe unwrapping because we know there is at least one error, and we only care about the first for this api
+                ));
+            }
+        }
+
+        Ok(task)
+    }
+}
+
+#[derive(Serialize)]
+pub struct ResponseTask {
+    pub id: i32,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: Option<String>,
+    pub completed_at: Option<String>,
 }
 
 pub async fn create_task(
-    authorization: TypedHeader<Authorization<Bearer>>,
-    State(database): State<DatabaseConnection>,
-    Json(request_task): Json<RequestTask>,
-) -> Result<(), StatusCode> {
-    let token = authorization.token();
+    Extension(user): Extension<UserModel>,
+    State(db): State<DatabaseConnection>,
+    task: ValidateCreateTask,
+) -> Result<(StatusCode, Json<ResponseTask>), AppError> {
+    let task = task_queries::create_task(task, &user, &db).await?;
 
-    let user = if let Some(user) = Users::find()
-        .filter(users::Column::Token.eq(Some(token)))
-        .one(&database)
-        .await
-        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)?
-    {
-        user
-    } else {
-        return Err(StatusCode::UNAUTHORIZED);
-    };
-
-    let new_task = tasks::ActiveModel {
-        title: Set(request_task.title),
-        priority: Set(request_task.priority),
-        description: Set(request_task.description),
-        user_id: Set(Some(user.id)),
-        ..Default::default()
-    };
-
-    let result = new_task.save(&database).await.unwrap();
-
-    dbg!(result);
-
-    Ok(())
+    Ok((
+        StatusCode::CREATED,
+        Json(ResponseTask {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            completed_at: task.completed_at.map(|time| time.to_string()),
+        }),
+    ))
 }

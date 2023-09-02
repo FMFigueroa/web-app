@@ -31,16 +31,30 @@ where
     B::Error: Into<BoxError>,
     S: Send + Sync,
 {
-    type Rejection = (StatusCode, String);
+    type Rejection = AppError;
 
-    async fn from_request(request: Request<B>, _state: &S) -> Result<Self, Self::Rejection> {
-        let Json(user) = request
+    async fn from_request(req: Request<B>, _state: &S) -> Result<Self, Self::Rejection> {
+        let Json(user) = req
             .extract::<Json<RequestUser>, _>()
             .await
-            .map_err(|error| (StatusCode::BAD_REQUEST, format!("{}", error)))?;
+            .map_err(|error| {
+                eprintln!("Error extracting new task: {:?}", error);
+                AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Something went wrong, please try again",
+                )
+            })?;
 
         if let Err(errors) = user.validate() {
-            return Err((StatusCode::BAD_REQUEST, format!("{}", errors)));
+            let field_errors = errors.field_errors();
+            for (_, error) in field_errors {
+                return Err(AppError::new(
+                    StatusCode::BAD_REQUEST,
+                    error.first().unwrap().clone().message.unwrap().to_string(),
+                    // feel safe unwrapping because we know there is at least one error,
+                    // and we only care about the first.
+                ));
+            }
         }
 
         Ok(user)
@@ -58,7 +72,7 @@ pub async fn create_user(
     State(db): State<DatabaseConnection>,
     State(jwt_secret): State<TokenWrapper>,
     user: RequestUser,
-) -> Result<Json<ResponseUser>, AppError> {
+) -> Result<(StatusCode, Json<ResponseUser>), AppError> {
     let new_user = users::ActiveModel {
         username: Set(user.username.clone()),
         password: Set(hash_password(&user.password)?),
@@ -86,11 +100,14 @@ pub async fn create_user(
         }
     })?;
 
-    Ok(Json(ResponseUser {
-        username: new_user.username.unwrap(),
-        id: new_user.id.unwrap(),
-        token: new_user.token.unwrap(),
-    }))
+    Ok((
+        StatusCode::CREATED,
+        Json(ResponseUser {
+            username: new_user.username.unwrap(),
+            id: new_user.id.unwrap(),
+            token: new_user.token.unwrap(),
+        }),
+    ))
 }
 
 pub async fn get_one_user(
