@@ -65,6 +65,7 @@ pub struct ResponseTask {
     pub description: Option<String>,
     pub priority: Option<String>,
     pub completed_at: Option<String>,
+    pub user_id: Option<i32>,
 }
 
 pub async fn create_task(
@@ -81,6 +82,7 @@ pub async fn create_task(
             title: task.title,
             description: task.description,
             priority: task.priority,
+            user_id: task.user_id,
             completed_at: task.completed_at.map(|time| time.to_string()),
         }),
     ))

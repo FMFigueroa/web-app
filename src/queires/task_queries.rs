@@ -18,8 +18,8 @@ pub async fn create_task(
     db: &DatabaseConnection,
 ) -> Result<TaskModel, AppError> {
     let new_task = tasks::ActiveModel {
-        priority: Set(task.priority),
         title: Set(task.title.unwrap()),
+        priority: Set(task.priority),
         description: Set(task.description),
         user_id: Set(Some(user.id)),
         ..Default::default()
@@ -67,5 +67,22 @@ pub async fn find_task_by_id(
     task.ok_or_else(|| {
         eprintln!("Could not find task by id");
         AppError::new(StatusCode::NOT_FOUND, "not found")
+    })
+}
+
+pub async fn find_all_tasks(
+    db: &DatabaseConnection,
+    user_id: i32,
+    get_deleted: bool,
+) -> Result<Vec<TaskModel>, AppError> {
+    let mut query = Tasks::find().filter(tasks::Column::UserId.eq(Some(user_id)));
+
+    if !get_deleted {
+        query = query.filter(tasks::Column::DeletedAt.is_null());
+    }
+
+    query.all(db).await.map_err(|error| {
+        eprintln!("Error getting all tasks: {:?}", error);
+        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error getting all tasks")
     })
 }
