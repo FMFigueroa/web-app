@@ -15,8 +15,7 @@ pub struct Claims {
 pub fn create_token(secret: &str, username: String) -> Result<String, AppError> {
     dotenv().ok();
     let now = Utc::now();
-    let expires_at =
-        now + Duration::try_hours(1).expect("Failed to create duration");
+    let expires_at = now + Duration::try_hours(1).expect("Failed to create duration");
     let exp = expires_at.timestamp() as usize;
     let claims = Claims { exp, username };
     let token_header = Header::default();

@@ -60,10 +60,9 @@ pub async fn get_all_tasks(
     }
 
     let mut user_id_filter = Condition::all();
-    if let Some (user_id) = query_params.user_id {
+    if let Some(user_id) = query_params.user_id {
         user_id_filter = user_id_filter.add(tasks::Column::UserId.eq(user_id));
     }
-
 
     let tasks = Tasks::find()
         .filter(priority_filter)

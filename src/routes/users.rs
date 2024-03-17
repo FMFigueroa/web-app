@@ -1,7 +1,12 @@
 use crate::{
     database::users::{self, Entity as Users},
     queires::user_queries::{find_by_username, save_active_user},
-    utils::{app_error::AppError, jwt::create_token, token_wrapper::TokenWrapper},
+    utils::{
+        app_error::AppError,
+        hash::{hash_password, verify_password},
+        jwt::create_token,
+        token_wrapper::TokenWrapper,
+    },
 };
 use axum::{
     async_trait,
@@ -10,7 +15,7 @@ use axum::{
     http::{Request, StatusCode},
     BoxError, Extension, Json, RequestExt,
 };
-use bcrypt::{hash, verify};
+
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
@@ -169,7 +174,7 @@ pub async fn logout(
     Ok(StatusCode::OK)
 }
 
-fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
+/* fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
     verify(password, hash).map_err(|error| {
         eprintln!("Error verifying password: {:?}", error);
         AppError::new(
@@ -177,11 +182,11 @@ fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
             "The was a problem verifying your password",
         )
     })
-}
+} */
 
-fn hash_password(password: &str) -> Result<String, AppError> {
+/* fn hash_password(password: &str) -> Result<String, AppError> {
     hash(password, 14).map_err(|error| {
         eprintln!("Error hashing password: {:?}", error);
         AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error securing password")
     })
-}
+} */
