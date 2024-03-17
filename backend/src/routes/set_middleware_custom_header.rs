@@ -7,8 +7,7 @@ use axum::{
 use super::read_middleware_custom_header::HeaderMessage;
 
 pub async fn set_middleware_custom_header<B>(
-    mut request: Request<B>,
-    next: Next<B>,
+    mut request: Request<B>, next: Next<B>,
 ) -> Result<Response, StatusCode> {
     let headers = request.headers();
     let message = headers

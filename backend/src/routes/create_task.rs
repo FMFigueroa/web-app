@@ -1,11 +1,14 @@
-use crate::database::users::Model as UserModel;
-use crate::queires::task_queries;
-use crate::utils::app_error::AppError;
-use axum::body::HttpBody;
-use axum::extract::{FromRequest, State};
-use axum::http::Request;
-use axum::{async_trait, BoxError, Extension, RequestExt};
-use axum::{http::StatusCode, Json};
+use crate::{
+    database::users::Model as UserModel, queires::task_queries,
+    utils::app_error::AppError,
+};
+use axum::{
+    async_trait,
+    body::HttpBody,
+    extract::{FromRequest, State},
+    http::{Request, StatusCode},
+    BoxError, Extension, Json, RequestExt,
+};
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
@@ -30,8 +33,7 @@ where
     type Rejection = AppError;
 
     async fn from_request(
-        req: Request<B>,
-        _state: &S,
+        req: Request<B>, _state: &S,
     ) -> Result<ValidateCreateTask, Self::Rejection> {
         let Json(task) = req
             .extract::<Json<ValidateCreateTask>, _>()
@@ -70,8 +72,7 @@ pub struct ResponseTask {
 
 pub async fn create_task(
     Extension(user): Extension<UserModel>,
-    State(db): State<DatabaseConnection>,
-    task: ValidateCreateTask,
+    State(db): State<DatabaseConnection>, task: ValidateCreateTask,
 ) -> Result<(StatusCode, Json<ResponseTask>), AppError> {
     let task = task_queries::create_task(task, &user, &db).await?;
 

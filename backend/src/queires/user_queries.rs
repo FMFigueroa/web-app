@@ -1,18 +1,15 @@
 use crate::{
-    database::{
-        users::Model as UserModel,
-        users::{self, Entity as Users},
-    },
+    database::users::{self, Entity as Users, Model as UserModel},
     utils::app_error::AppError,
 };
 use axum::http::StatusCode;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, TryIntoModel,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait,
+    QueryFilter, TryIntoModel,
 };
 
 pub async fn save_active_user(
-    db: &DatabaseConnection,
-    user: users::ActiveModel,
+    db: &DatabaseConnection, user: users::ActiveModel,
 ) -> Result<UserModel, AppError> {
     let user = user.save(db).await.map_err(|error| {
         let error_message = error.to_string();
@@ -37,8 +34,7 @@ pub async fn save_active_user(
 }
 
 pub async fn find_by_username(
-    db: &DatabaseConnection,
-    username: String,
+    db: &DatabaseConnection, username: String,
 ) -> Result<UserModel, AppError> {
     Users::find()
         .filter(users::Column::Username.eq(username))
@@ -59,9 +55,14 @@ pub async fn find_by_username(
         })
 }
 
-fn convert_active_to_model(active_user: users::ActiveModel) -> Result<UserModel, AppError> {
+fn convert_active_to_model(
+    active_user: users::ActiveModel,
+) -> Result<UserModel, AppError> {
     active_user.try_into_model().map_err(|error| {
         eprintln!("Error converting task active model to model: {:?}", error);
-        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error",
+        )
     })
 }

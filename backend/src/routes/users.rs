@@ -1,7 +1,9 @@
 use crate::{
     database::users::{self, Entity as Users},
     queires::user_queries::{find_by_username, save_active_user},
-    utils::{app_error::AppError, jwt::create_token, token_wrapper::TokenWrapper},
+    utils::{
+        app_error::AppError, jwt::create_token, token_wrapper::TokenWrapper,
+    },
 };
 use axum::{
     async_trait,
@@ -11,7 +13,9 @@ use axum::{
     BoxError, Extension, Json, RequestExt,
 };
 use bcrypt::{hash, verify};
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set};
+use sea_orm::{
+    ActiveModelTrait, DatabaseConnection, EntityTrait, IntoActiveModel, Set,
+};
 use serde::{Deserialize, Serialize};
 use tower_cookies::{Cookie, Cookies};
 use validator::Validate;
@@ -33,17 +37,19 @@ where
 {
     type Rejection = AppError;
 
-    async fn from_request(req: Request<B>, _state: &S) -> Result<Self, Self::Rejection> {
-        let Json(user) = req
-            .extract::<Json<RequestUser>, _>()
-            .await
-            .map_err(|error| {
-                eprintln!("Error extracting new task: {:?}", error);
-                AppError::new(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Something went wrong, please try again",
-                )
-            })?;
+    async fn from_request(
+        req: Request<B>, _state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        let Json(user) =
+            req.extract::<Json<RequestUser>, _>()
+                .await
+                .map_err(|error| {
+                    eprintln!("Error extracting new task: {:?}", error);
+                    AppError::new(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Something went wrong, please try again",
+                    )
+                })?;
 
         if let Err(errors) = user.validate() {
             let field_errors = errors.field_errors();
@@ -70,8 +76,7 @@ pub struct ResponseUser {
 
 pub async fn create_user(
     State(db): State<DatabaseConnection>,
-    State(jwt_secret): State<TokenWrapper>,
-    user: RequestUser,
+    State(jwt_secret): State<TokenWrapper>, user: RequestUser,
 ) -> Result<(StatusCode, Json<ResponseUser>), AppError> {
     let new_user = users::ActiveModel {
         username: Set(user.username.clone()),
@@ -111,8 +116,7 @@ pub async fn create_user(
 }
 
 pub async fn get_one_user(
-    Path(user_id): Path<i32>,
-    State(db): State<DatabaseConnection>,
+    Path(user_id): Path<i32>, State(db): State<DatabaseConnection>,
 ) -> Result<Json<ResponseUser>, StatusCode> {
     let user = Users::find_by_id(user_id).one(&db).await.unwrap();
     if let Some(user) = user {
@@ -145,8 +149,7 @@ pub async fn get_all_users(
 }
 
 pub async fn login(
-    cookies: Cookies,
-    State(db): State<DatabaseConnection>,
+    cookies: Cookies, State(db): State<DatabaseConnection>,
     State(jwt_secret): State<TokenWrapper>,
     Json(request_user): Json<RequestUser>,
 ) -> Result<Json<ResponseUser>, AppError> {
@@ -178,8 +181,7 @@ pub async fn login(
 }
 
 pub async fn logout(
-    cookies: Cookies,
-    Extension(user): Extension<users::Model>,
+    cookies: Cookies, Extension(user): Extension<users::Model>,
     State(db): State<DatabaseConnection>,
 ) -> Result<StatusCode, AppError> {
     let mut user = user.into_active_model();
@@ -206,6 +208,9 @@ fn verify_password(password: &str, hash: &str) -> Result<bool, AppError> {
 fn hash_password(password: &str) -> Result<String, AppError> {
     hash(password, 14).map_err(|error| {
         eprintln!("Error hashing password: {:?}", error);
-        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error securing password")
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Error securing password",
+        )
     })
 }

@@ -10,8 +10,8 @@ use axum::{
     BoxError, Json, RequestExt,
 };
 use sea_orm::{
-    prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
-    QueryFilter, Set,
+    prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection,
+    EntityTrait, IntoActiveModel, QueryFilter, Set,
 };
 use serde::Deserialize;
 use validator::Validate;
@@ -39,7 +39,9 @@ where
 {
     type Rejection = (StatusCode, String);
 
-    async fn from_request(request: Request<B>, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(
+        request: Request<B>, _state: &S,
+    ) -> Result<Self, Self::Rejection> {
         let Json(user) = request
             .extract::<Json<RequestUser>, _>()
             .await
@@ -54,8 +56,7 @@ where
 }
 
 pub async fn partial_update_user(
-    Path(user_id): Path<i32>,
-    State(db): State<DatabaseConnection>,
+    Path(user_id): Path<i32>, State(db): State<DatabaseConnection>,
     user: RequestUser,
 ) -> Result<(), StatusCode> {
     let mut db_user = if let Some(user) = Users::find_by_id(user_id)
@@ -90,5 +91,6 @@ pub async fn partial_update_user(
 }
 
 fn hash_password(password: String) -> Result<String, StatusCode> {
-    bcrypt::hash(password, 14).map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
+    bcrypt::hash(password, 14)
+        .map_err(|_error| StatusCode::INTERNAL_SERVER_ERROR)
 }

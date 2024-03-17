@@ -29,8 +29,7 @@ pub struct ResponseDataTasks {
 }
 
 pub async fn get_one_task(
-    Path(task_id): Path<i32>,
-    State(db): State<DatabaseConnection>,
+    Path(task_id): Path<i32>, State(db): State<DatabaseConnection>,
     Extension(user): Extension<Model>,
 ) -> Result<(StatusCode, Json<ResponseTask>), AppError> {
     let task = find_task_by_id(&db, task_id, user.id).await?;
@@ -50,8 +49,7 @@ pub async fn get_one_task(
 }
 
 pub async fn get_all_tasks(
-    State(db): State<DatabaseConnection>,
-    Extension(user): Extension<Model>,
+    State(db): State<DatabaseConnection>, Extension(user): Extension<Model>,
 ) -> Result<(StatusCode, Json<ResponseDataTasks>), AppError> {
     let tasks = find_all_tasks(&db, user.id, false)
         .await?

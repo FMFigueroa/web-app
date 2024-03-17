@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set, TryIntoModel,
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait,
+    QueryFilter, Set, TryIntoModel,
 };
 
 use crate::{
@@ -13,9 +14,7 @@ use crate::{
 };
 
 pub async fn create_task(
-    task: ValidateCreateTask,
-    user: &UserModel,
-    db: &DatabaseConnection,
+    task: ValidateCreateTask, user: &UserModel, db: &DatabaseConnection,
 ) -> Result<TaskModel, AppError> {
     let new_task = tasks::ActiveModel {
         title: Set(task.title.unwrap()),
@@ -29,8 +28,7 @@ pub async fn create_task(
 }
 
 pub async fn save_active_task(
-    db: &DatabaseConnection,
-    task: tasks::ActiveModel,
+    db: &DatabaseConnection, task: tasks::ActiveModel,
 ) -> Result<TaskModel, AppError> {
     let task = task.save(db).await.map_err(|error| {
         eprintln!("Error saving task: {:?}", error);
@@ -40,17 +38,20 @@ pub async fn save_active_task(
     convert_active_to_model(task)
 }
 
-fn convert_active_to_model(active_task: tasks::ActiveModel) -> Result<TaskModel, AppError> {
+fn convert_active_to_model(
+    active_task: tasks::ActiveModel,
+) -> Result<TaskModel, AppError> {
     active_task.try_into_model().map_err(|error| {
         eprintln!("Error converting task active model to model: {:?}", error);
-        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Internal server error",
+        )
     })
 }
 
 pub async fn find_task_by_id(
-    db: &DatabaseConnection,
-    id: i32,
-    user_id: i32,
+    db: &DatabaseConnection, id: i32, user_id: i32,
 ) -> Result<TaskModel, AppError> {
     let task = Tasks::find_by_id(id)
         .filter(tasks::Column::UserId.eq(Some(user_id)))
@@ -71,11 +72,10 @@ pub async fn find_task_by_id(
 }
 
 pub async fn find_all_tasks(
-    db: &DatabaseConnection,
-    user_id: i32,
-    get_deleted: bool,
+    db: &DatabaseConnection, user_id: i32, get_deleted: bool,
 ) -> Result<Vec<TaskModel>, AppError> {
-    let mut query = Tasks::find().filter(tasks::Column::UserId.eq(Some(user_id)));
+    let mut query =
+        Tasks::find().filter(tasks::Column::UserId.eq(Some(user_id)));
 
     if !get_deleted {
         query = query.filter(tasks::Column::DeletedAt.is_null());
@@ -83,6 +83,9 @@ pub async fn find_all_tasks(
 
     query.all(db).await.map_err(|error| {
         eprintln!("Error getting all tasks: {:?}", error);
-        AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error getting all tasks")
+        AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Error getting all tasks",
+        )
     })
 }

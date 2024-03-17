@@ -1,7 +1,9 @@
 use axum::http::StatusCode;
 use chrono::{Duration, Utc};
 use dotenvy::dotenv;
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation,
+};
 use serde::{Deserialize, Serialize};
 
 use super::app_error::AppError;
@@ -12,11 +14,14 @@ pub struct Claims {
     username: String,
 }
 
-pub fn create_token(secret: &str, username: String) -> Result<String, AppError> {
+pub fn create_token(
+    secret: &str, username: String,
+) -> Result<String, AppError> {
     dotenv().ok();
+
     let now = Utc::now();
-    let expires_at = Duration::hours(1);
-    let expires_at = now + expires_at;
+    let expires_at =
+        now + Duration::try_hours(1).expect("Failed to create duration");
     let exp = expires_at.timestamp() as usize;
     let claims = Claims { exp, username };
     let token_header = Header::default();
@@ -43,7 +48,10 @@ pub fn validate_token(secret: &str, token: &str) -> Result<bool, AppError> {
             }
             _ => {
                 eprintln!("Error validating token: {:?}", error);
-                AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Error validating token")
+                AppError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Error validating token",
+                )
             }
         })
         .map(|_claim| true)

@@ -8,7 +8,9 @@ pub struct JsonResponse {
     github: Option<String>,
 }
 
-pub async fn validate_json(Json(user): Json<JsonResponse>) -> Json<JsonResponse> {
+pub async fn validate_json(
+    Json(user): Json<JsonResponse>,
+) -> Json<JsonResponse> {
     //println!("{user:?}");
     dbg!(&user);
 

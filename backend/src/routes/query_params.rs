@@ -13,7 +13,9 @@ pub struct JsonResponse {
     github: String,
 }
 
-pub async fn query_params(Query(query): Query<QueryParams>) -> Json<JsonResponse> {
+pub async fn query_params(
+    Query(query): Query<QueryParams>,
+) -> Json<JsonResponse> {
     if query.id == 1 {
         Json(JsonResponse {
             id: query.id,

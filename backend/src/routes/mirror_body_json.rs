@@ -16,7 +16,9 @@ pub struct MirrorJsonResponse {
     github: String,
 }
 
-pub async fn mirror_body_json(Json(body): Json<MirrorJson>) -> Json<MirrorJsonResponse> {
+pub async fn mirror_body_json(
+    Json(body): Json<MirrorJson>,
+) -> Json<MirrorJsonResponse> {
     Json(MirrorJsonResponse {
         id: 01,
         profile: body.profile,

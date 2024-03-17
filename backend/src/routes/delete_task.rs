@@ -11,8 +11,7 @@ use chrono::Utc;
 use sea_orm::{DatabaseConnection, IntoActiveModel, Set};
 
 pub async fn delete_task(
-    State(db): State<DatabaseConnection>,
-    Path(task_id): Path<i32>,
+    State(db): State<DatabaseConnection>, Path(task_id): Path<i32>,
     Extension(user): Extension<Model>,
 ) -> Result<(), AppError> {
     let mut task = find_task_by_id(&db, task_id, user.id)

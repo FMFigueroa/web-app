@@ -2,15 +2,15 @@
 ** Atomic Updates
 */
 
-use crate::database::tasks;
-use crate::database::tasks::Entity as Tasks;
+use crate::database::{tasks, tasks::Entity as Tasks};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
 use sea_orm::{
-    prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection,
+    EntityTrait, QueryFilter, Set,
 };
 use serde::Deserialize;
 
@@ -27,8 +27,7 @@ pub struct RequestTask {
 }
 
 pub async fn atomic_update(
-    Path(task_id): Path<i32>,
-    State(database): State<DatabaseConnection>,
+    Path(task_id): Path<i32>, State(database): State<DatabaseConnection>,
     Json(request_task): Json<RequestTask>,
 ) -> Result<(), StatusCode> {
     let update_task = tasks::ActiveModel {

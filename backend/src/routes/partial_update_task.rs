@@ -2,16 +2,15 @@
 ** Partial Updates
 */
 
-use crate::database::tasks;
-use crate::database::tasks::Entity as Tasks;
+use crate::database::{tasks, tasks::Entity as Tasks};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     Json,
 };
 use sea_orm::{
-    prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
-    QueryFilter, Set,
+    prelude::DateTimeWithTimeZone, ColumnTrait, DatabaseConnection,
+    EntityTrait, IntoActiveModel, QueryFilter, Set,
 };
 use serde::Deserialize;
 
@@ -45,8 +44,7 @@ pub struct RequestTask {
 }
 
 pub async fn partial_update(
-    Path(task_id): Path<i32>,
-    State(database): State<DatabaseConnection>,
+    Path(task_id): Path<i32>, State(database): State<DatabaseConnection>,
     Json(request_task): Json<RequestTask>,
 ) -> Result<(), StatusCode> {
     let mut db_task = if let Some(task) = Tasks::find_by_id(task_id)
