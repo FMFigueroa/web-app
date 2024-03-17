@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:site_name" content="web_app">
+  <meta property="og:title" content="Bienvenidos a Web_App">
+  <meta property="og:description" content="Esta es una web_app en Rust.">
+  <meta name="description" content="Esta es una web_app en Rust.">
+  <title>WebSite</title>
+  <link rel="stylesheet" href="/output-55e47b6f1b9418ff.css">
+
+<link rel="preload" href="/frontend-7c148299b9b19e5b_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/frontend-7c148299b9b19e5b.js"></head>
+<body class="bg-slate-700">
+
+
+<script type="module">import init from '/frontend-7c148299b9b19e5b.js';init('/frontend-7c148299b9b19e5b_bg.wasm');</script><script>(function () {
+    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var url = protocol + '//' + window.location.host + '/_trunk/ws';
+    var poll_interval = 5000;
+    var reload_upon_connect = () => {
+        window.setTimeout(
+            () => {
+                // when we successfully reconnect, we'll force a
+                // reload (since we presumably lost connection to
+                // trunk due to it being killed, so it will have
+                // rebuilt on restart)
+                var ws = new WebSocket(url);
+                ws.onopen = () => window.location.reload();
+                ws.onclose = reload_upon_connect;
+            },
+            poll_interval);
+    };
+
+    var ws = new WebSocket(url);
+    ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.reload) {
+            window.location.reload();
+        }
+    };
+    ws.onclose = reload_upon_connect;
+})()
+</script></body></html>
