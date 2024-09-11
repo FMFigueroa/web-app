@@ -1,7 +1,6 @@
 /*
 ** Atomic Updates
 */
-#[warn(dead_code)]
 use crate::database::{tasks, tasks::Entity as Tasks};
 use axum::{
     extract::{Path, State},
@@ -13,8 +12,7 @@ use sea_orm::{
     EntityTrait, QueryFilter, Set,
 };
 use serde::Deserialize;
-
-
+#[warn(dead_code)]
 #[derive(Deserialize)]
 pub struct RequestTask {
     pub id: Option<i32>,
